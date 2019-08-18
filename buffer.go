@@ -94,6 +94,26 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 	return
 }
 
+func (b *Buffer) WriteByte(c byte) error {
+	slice := []byte{c}
+	_, err := b.Write(slice)
+	return err
+}
+
+func (b *Buffer) WriteRune(r rune) (n int, err error) {
+	tmp := bytes.Buffer{}
+	n, err = tmp.WriteRune(r)
+	if err != nil {
+		return n, err
+	}
+
+	return b.Write(tmp.Bytes())
+}
+
+func (b *Buffer) WriteString(s string) (n int, err error) {
+	return b.Write([]byte(s))
+}
+
 // Read reads data from bytes.Buffer or from a file. A temp file is deleted when Read() encounter n == 0
 func (b *Buffer) Read(data []byte) (n int, err error) {
 	if b.readingFinished {
