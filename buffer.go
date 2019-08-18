@@ -15,7 +15,8 @@ func init() {
 }
 
 const (
-	tempFilenameLength = 5
+	tempFilenameLength   = 5
+	DefaultMaxMemorySize = 2 << 20 // 2 MB
 )
 
 var (
@@ -41,7 +42,23 @@ type Buffer struct {
 	filename string
 }
 
-func NewBuffer(maxInMemorySize int) *Buffer {
+// NewBuffer creates a new Buffer with DefaultMaxMemorySize and calls Write(buf).
+// If an error occurred, it panics
+func NewBuffer(buf []byte) *Buffer {
+	b := &Buffer{
+		maxInMemorySize: DefaultMaxMemorySize,
+	}
+
+	_, err := b.Write(buf)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
+}
+
+// NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
+func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
 	return &Buffer{
 		maxInMemorySize: maxInMemorySize,
 	}
