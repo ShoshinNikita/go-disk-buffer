@@ -221,6 +221,15 @@ func (b *Buffer) readFromFile(data []byte) (n int, err error) {
 	return b.file.Read(data)
 }
 
+// ReadByte reads a single byte.
+//
+// It uses Buffer.Read underhood
+func (b *Buffer) ReadByte() (byte, error) {
+	c := make([]byte, 1)
+	_, err := b.Read(c)
+	return c[0], err
+}
+
 // Len returns the number of bytes of the unread portion of the buffer
 func (b *Buffer) Len() int {
 	return b.size - b.offset
@@ -243,15 +252,6 @@ func (b *Buffer) Reset() {
 	b.file = nil
 	b.useFile = false
 	b.filename = ""
-}
-
-// ReadByte reads a single byte.
-//
-// It uses Buffer.Read underhood
-func (b *Buffer) ReadByte() (byte, error) {
-	c := make([]byte, 1)
-	_, err := b.Read(c)
-	return c[0], err
 }
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
