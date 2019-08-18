@@ -29,6 +29,9 @@ type Buffer struct {
 	writingFinished bool
 	readingFinished bool
 
+	size   int
+	offset int
+
 	// buff is used to store data in memory
 	buff bytes.Buffer
 
@@ -51,10 +54,15 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 		return 0, ErrBufferFinished
 	}
 
+	defer func() {
+		b.size += n
+	}()
+
 	if !b.useFile {
 		if b.buff.Len()+len(data) <= b.maxInMemorySize {
 			// Just write data into the buffer
-			return b.buff.Write(data)
+			n, err = b.buff.Write(data)
+			return
 		}
 
 		// We have to use a file. But fill the buffer at first
@@ -83,7 +91,7 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 	// Write data into the file
 	n1, err := b.file.Write(data)
 	n += n1
-	return n, err
+	return
 }
 
 // Read reads data from bytes.Buffer or from a file. A temp file is deleted when Read() encounter n == 0
@@ -103,6 +111,8 @@ func (b *Buffer) Read(data []byte) (n int, err error) {
 
 	// Check if reading is finished
 	defer func() {
+		b.offset += n
+
 		// If n is less than size of data slice, reading is finished
 		if n < len(data) {
 			b.readingFinished = true
@@ -165,6 +175,10 @@ func (b *Buffer) readFromFile(data []byte) (n int, err error) {
 	}
 
 	return b.file.Read(data)
+}
+
+func (b *Buffer) Len() int {
+	return b.size - b.offset
 }
 
 // Reset resets buffer and remove file if needed
