@@ -200,6 +200,12 @@ func (b *Buffer) Reset() {
 	b.filename = ""
 }
 
+func (b *Buffer) ReadByte() (byte, error) {
+	c := make([]byte, 1)
+	_, err := b.Read(c)
+	return c[0], err
+}
+
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func generateFilename(length int) string {
