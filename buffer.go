@@ -94,12 +94,18 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 	return
 }
 
+// WriteByte writes a single byte.
+//
+// It uses Buffer.Write underhood
 func (b *Buffer) WriteByte(c byte) error {
 	slice := []byte{c}
 	_, err := b.Write(slice)
 	return err
 }
 
+// WriteByte writes a rune.
+//
+// It uses bytes.Buffer and Buffer.Write underhood.
 func (b *Buffer) WriteRune(r rune) (n int, err error) {
 	tmp := bytes.Buffer{}
 	n, err = tmp.WriteRune(r)
@@ -110,6 +116,7 @@ func (b *Buffer) WriteRune(r rune) (n int, err error) {
 	return b.Write(tmp.Bytes())
 }
 
+// WriteByte writes a string
 func (b *Buffer) WriteString(s string) (n int, err error) {
 	return b.Write([]byte(s))
 }
@@ -197,6 +204,7 @@ func (b *Buffer) readFromFile(data []byte) (n int, err error) {
 	return b.file.Read(data)
 }
 
+// Len returns the number of bytes of the unread portion of the buffer
 func (b *Buffer) Len() int {
 	return b.size - b.offset
 }
@@ -220,6 +228,9 @@ func (b *Buffer) Reset() {
 	b.filename = ""
 }
 
+// ReadByte reads a single byte.
+//
+// It uses Buffer.Read underhood
 func (b *Buffer) ReadByte() (byte, error) {
 	c := make([]byte, 1)
 	_, err := b.Read(c)
