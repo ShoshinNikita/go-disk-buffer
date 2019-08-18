@@ -1,0 +1,200 @@
+package buffer
+
+import (
+	"bytes"
+	"io"
+	"math/rand"
+	"os"
+	"time"
+
+	"github.com/pkg/errors"
+)
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+const (
+	tempFilenameLength = 5
+)
+
+var (
+	ErrBufferFinished = errors.New("buffer is finished")
+)
+
+// Buffer is a buffer which can store data on a disk. It isn't thread-safe!
+type Buffer struct {
+	maxInMemorySize int
+
+	writingFinished bool
+	readingFinished bool
+
+	// buff is used to store data in memory
+	buff bytes.Buffer
+
+	// file is used to store data on a disk
+	file     *os.File
+	useFile  bool
+	filename string
+}
+
+func NewBuffer(maxInMemorySize int) *Buffer {
+	return &Buffer{
+		maxInMemorySize: maxInMemorySize,
+	}
+}
+
+// Write writes data into bytes.Buffer while size of the Buffer is less than maxInMemorySize.
+// When size of Buffer is equal to maxInMemorySize, Write creates a temporary file and writes remaining data into this one.
+func (b *Buffer) Write(data []byte) (n int, err error) {
+	if b.writingFinished {
+		return 0, ErrBufferFinished
+	}
+
+	if !b.useFile {
+		if b.buff.Len()+len(data) <= b.maxInMemorySize {
+			// Just write data into the buffer
+			return b.buff.Write(data)
+		}
+
+		// We have to use a file. But fill the buffer at first
+
+		bound := b.maxInMemorySize - b.buff.Len()
+		n, err = b.buff.Write(data[:bound])
+		if err != nil {
+			return
+		}
+
+		// Trim written bytes
+		data = data[bound:]
+
+		b.useFile = true
+
+		// Create a file in TempDir
+		b.filename = os.TempDir() + "/" + generateFilename(tempFilenameLength) + ".tmp"
+		b.file, err = os.Create(b.filename)
+		if err != nil {
+			return n, errors.Wrap(err, "can't create a temp file")
+		}
+
+		// fallthrough
+	}
+
+	// Write data into the file
+	n1, err := b.file.Write(data)
+	n += n1
+	return n, err
+}
+
+// Read reads data from bytes.Buffer or from a file. A temp file is deleted when Read() encounter n == 0
+func (b *Buffer) Read(data []byte) (n int, err error) {
+	if b.readingFinished {
+		return 0, io.EOF
+	}
+
+	if !b.writingFinished {
+		// Finish writing and close Write&Read file if needed
+		if b.file != nil {
+			b.file.Close()
+			b.file = nil
+		}
+		b.writingFinished = true
+	}
+
+	// Check if reading is finished
+	defer func() {
+		// If n is less than size of data slice, reading is finished
+		if n < len(data) {
+			b.readingFinished = true
+		}
+
+		if b.readingFinished && b.file != nil {
+			// Can close the file
+			b.file.Close()
+			os.Remove(b.filename)
+
+			b.file = nil
+			b.filename = ""
+		}
+	}()
+
+	if b.buff.Len() != 0 {
+		// Use the buffer
+		n, err = b.readFromBuffer(data)
+		if err != nil || n == len(data) || !b.useFile {
+			// Return if got an error, we filled the slice with data from buffer or we don't use a file
+			return
+		}
+
+		// Can use the file to fill the slice
+
+		var n1 int
+
+		temp := make([]byte, len(data)-n)
+		n1, err = b.readFromFile(temp)
+		temp = temp[:n1]
+		copy(data[n:], temp)
+
+		n += n1
+		return
+	}
+
+	if b.useFile {
+		// Use the file
+		n, err = b.readFromFile(data)
+		return
+	}
+
+	// Reaching this code means that we buffer is empty and we don't use a file. So, reading is finished
+
+	n = 0
+	err = io.EOF
+	return
+}
+
+func (b *Buffer) readFromBuffer(data []byte) (n int, err error) {
+	return b.buff.Read(data)
+}
+
+func (b *Buffer) readFromFile(data []byte) (n int, err error) {
+	if b.file == nil {
+		b.file, err = os.Open(b.filename)
+		if err != nil {
+			return 0, errors.Wrapf(err, "can't open a temp file '%s'", b.filename)
+		}
+	}
+
+	return b.file.Read(data)
+}
+
+// Reset resets buffer and remove file if needed
+func (b *Buffer) Reset() {
+	b.buff.Reset()
+
+	if b.file != nil {
+		b.file.Close()
+
+		if b.filename != "" {
+			os.Remove(b.filename)
+		}
+	}
+
+	b.writingFinished = false
+	b.readingFinished = false
+	b.file = nil
+	b.useFile = false
+	b.filename = ""
+}
+
+const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func generateFilename(length int) string {
+	filename := make([]byte, 0, length)
+
+	for i := 0; i < length; i++ {
+		n := rand.Intn(len(alphabet))
+		filename = append(filename, alphabet[n])
+	}
+
+	return string(filename)
+}
