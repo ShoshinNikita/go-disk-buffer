@@ -59,6 +59,10 @@ func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
 // If an error occurred, it panics
 func NewBuffer(buf []byte) *Buffer {
 	b := NewBufferWithMemorySize(DefaultMaxMemorySize)
+	if buf == nil || len(buf) == 0 {
+		// A special case
+		return b
+	}
 
 	_, err := b.Write(buf)
 	if err != nil {
