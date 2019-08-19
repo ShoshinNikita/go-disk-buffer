@@ -57,6 +57,11 @@ func NewBuffer(buf []byte) *Buffer {
 	return b
 }
 
+// NewBufferString calls NewBuffer([]byte(s))
+func NewBufferString(s string) *Buffer {
+	return NewBuffer([]byte(s))
+}
+
 // NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
 func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
 	return &Buffer{
