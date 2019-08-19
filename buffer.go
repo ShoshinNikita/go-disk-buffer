@@ -42,12 +42,23 @@ type Buffer struct {
 	filename string
 }
 
+// NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
+func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
+	b := &Buffer{
+		maxInMemorySize: maxInMemorySize,
+	}
+
+	// Grow the internal buffer
+	// TODO: should we use just maxInMemorySize?
+	b.buff.Grow(maxInMemorySize / 2)
+
+	return b
+}
+
 // NewBuffer creates a new Buffer with DefaultMaxMemorySize and calls Write(buf).
 // If an error occurred, it panics
 func NewBuffer(buf []byte) *Buffer {
-	b := &Buffer{
-		maxInMemorySize: DefaultMaxMemorySize,
-	}
+	b := NewBufferWithMemorySize(DefaultMaxMemorySize)
 
 	_, err := b.Write(buf)
 	if err != nil {
@@ -60,13 +71,6 @@ func NewBuffer(buf []byte) *Buffer {
 // NewBufferString calls NewBuffer([]byte(s))
 func NewBufferString(s string) *Buffer {
 	return NewBuffer([]byte(s))
-}
-
-// NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
-func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
-	return &Buffer{
-		maxInMemorySize: maxInMemorySize,
-	}
 }
 
 // Write writes data into bytes.Buffer while size of the Buffer is less than maxInMemorySize.
