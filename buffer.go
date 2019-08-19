@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
@@ -268,6 +269,26 @@ func (b *Buffer) ReadByte() (byte, error) {
 	c := make([]byte, 1)
 	_, err := b.Read(c)
 	return c[0], err
+}
+
+// TODO: help wanted.
+// What should we do with invalid runes (like 0xff)?
+func (b *Buffer) readRune() (r rune, size int, err error) {
+	var p []byte
+
+	for {
+		c, err := b.ReadByte()
+		if err != nil {
+			return r, 0, err
+		}
+
+		p = append(p, c)
+
+		if utf8.FullRune(p) {
+			r, size = utf8.DecodeRune(p)
+			return r, size, nil
+		}
+	}
 }
 
 // Next returns a slice containing the next n bytes from the buffer.

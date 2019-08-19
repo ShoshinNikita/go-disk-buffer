@@ -95,7 +95,7 @@ func main() {
 
 - `ReadBytes(delim byte) (line []byte, err error)`
 - `ReadString(delim byte) (line string, err error)`
-- `ReadRune() (r rune, size int, err error)`
+- `ReadRune() (r rune, size int, err error)` – **help wanted**
 - `Truncate(n int)`
 
 ## Unavailable methods

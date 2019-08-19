@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/require"
 )
@@ -228,6 +229,26 @@ func TestBuffer_ReadByte(t *testing.T) {
 		c, err := b.ReadByte()
 		require.Nil(err)
 		require.Equal(data[i], c)
+	}
+}
+
+// TODO
+func TestBuffer_ReadRune(t *testing.T) {
+	t.Skip("skip the test because \"Buffer.ReadRune()\" method is not finished")
+
+	require := require.New(t)
+
+	data := []byte("Hello | ✓ | 123456 | Привет!")
+
+	b := NewBufferWithMaxMemorySize(len(data) / 2)
+	b.Write([]byte(data))
+
+	for _, rn := range string(data) {
+		r, size, err := b.readRune()
+		require.Nil(err)
+		require.Equal(utf8.RuneLen(rn), size)
+		require.Equal(rn, r)
+
 	}
 }
 
