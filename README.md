@@ -89,6 +89,7 @@ func main() {
 ### Other
 
 - `Len() int`
+- `Cap() int` – equal to `Len()` method
 - `Reset()`
 
 ## TODO methods
@@ -110,10 +111,6 @@ func main() {
 - `Grow(n int)`
 
   **Reason:** we can allocate the memory only in RAM. It doesn't make sense to allocate space on a disk
-
-- `Cap() int`
-
-  **Reason:** we can't define capacity (see the previous reason)
 
 - `Truncate(n int)`
 - `UnreadByte() error`

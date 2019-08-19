@@ -333,6 +333,11 @@ func (b *Buffer) Len() int {
 	return b.size - b.offset
 }
 
+// Cap is equal to Buffer.Len()
+func (b *Buffer) Cap() int {
+	return b.Len()
+}
+
 // Reset resets buffer and remove file if needed
 func (b *Buffer) Reset() {
 	b.buff.Reset()
