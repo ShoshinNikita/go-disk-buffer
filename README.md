@@ -76,6 +76,7 @@ func main() {
 - `Read(p []byte) (n int, err error)`
 - `ReadByte() (byte, error)`
 - `Next(n int) []byte`
+- `WriteTo(w io.Writer) (n int64, err error)`
 
 ### Write
 
@@ -92,7 +93,6 @@ func main() {
 
 ## TODO methods
 
-- `WriteTo(w io.Writer) (n int64, err error)`
 - `ReadBytes(delim byte) (line []byte, err error)`
 - `ReadString(delim byte) (line string, err error)`
 - `ReadRune() (r rune, size int, err error)`

@@ -282,6 +282,31 @@ func (b *Buffer) Next(n int) []byte {
 	return slice
 }
 
+func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
+	var n int64
+
+	data := make([]byte, 512)
+	for {
+		rN, rErr := b.Read(data)
+		if rErr != nil && rErr != io.EOF {
+			return n, errors.Wrap(rErr, "can't read data from Buffer")
+		}
+
+		data = data[:rN]
+		wN, wErr := w.Write(data)
+		if wErr != nil {
+			return n + int64(wN), errors.Wrap(wErr, "can't write data into io.Writer")
+		}
+		n += int64(rN)
+
+		if rErr == io.EOF {
+			return n, nil
+		}
+
+		data = data[:cap(data)]
+	}
+}
+
 // Len returns the number of bytes of the unread portion of the buffer
 func (b *Buffer) Len() int {
 	return b.size - b.offset

@@ -387,6 +387,43 @@ func TestBuffer_WriteSmth(t *testing.T) {
 	}
 }
 
+func TestBuffer_WriteTo(t *testing.T) {
+	tests := []struct {
+		data []byte
+	}{
+		{data: []byte(generateRandomString(1))},
+		{data: []byte(generateRandomString(61))},
+		{data: []byte(generateRandomString(513))},
+		{data: []byte(generateRandomString(2056))},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			require := require.New(t)
+
+			b := NewBuffer(nil)
+			defer b.Reset()
+
+			// Write
+
+			n, err := b.Write(tt.data)
+			require.Nil(err)
+			require.Equal(len(tt.data), n)
+
+			// WriteTo
+			buffer := bytes.NewBuffer(nil)
+			n1, err := b.WriteTo(buffer)
+			require.Nil(err)
+			require.Equal(int64(len(tt.data)), n1)
+			require.Equal(tt.data, buffer.Bytes())
+		})
+	}
+}
+
 func TestBuffer_FuzzTest(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
