@@ -1,11 +1,12 @@
 # Go Disk Buffer
 
-This package helps to work with huge amount of data, which cannot be stored in RAM. Instead of keeping all data in RAM `go-disk-buffer.Buffer` stores the data on a disk in a temporary file.
+This package `buffer` helps to work with huge amount of data, which cannot be stored in RAM. Instead of keeping all data in RAM `buffer.Buffer` stores the data on a disk in a temporary file.
 
 **Notes:**
 
-- `go-disk-buffer.Buffer` is compatible with `io.Reader` and `io.Writer` interfaces
-- `go-disk-buffer.Buffer` can replace `bytes.Buffer` (except some methods – check [Unavailable methods](#unavailable-methods))
+- It is **not** recommended to use zero value of `buffer.Buffer`. Use `buffer.NewBuffer()` or `buffer.NewBufferWithMaxMemorySize()` instead
+- `buffer.Buffer` is compatible with `io.Reader` and `io.Writer` interfaces
+- `buffer.Buffer` can replace `bytes.Buffer` (except some methods – check [Unavailable methods](#unavailable-methods))
 - `buffer.Buffer` is **not** thread-safe!
 
 ##
