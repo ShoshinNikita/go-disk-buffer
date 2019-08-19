@@ -77,10 +77,9 @@ func NewBufferString(s string) *Buffer {
 	return NewBuffer([]byte(s))
 }
 
-// Write writes data into bytes.Buffer while size of the Buffer is less than maxInMemorySize.
+// Write writes data into bytes.Buffer while size of the Buffer is less than maxInMemorySize, when size of Buffer is equal to maxInMemorySize, Write creates a temporary file and writes remaining data into this one.
 // Write returns ErrBufferFinished after the call of Buffer.Read(), Buffer.ReadByte() or Buffer.Next()
 //
-// When size of Buffer is equal to maxInMemorySize, Write creates a temporary file and writes remaining data into this one.
 func (b *Buffer) Write(data []byte) (n int, err error) {
 	if b.writingFinished {
 		return 0, ErrBufferFinished
