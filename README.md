@@ -15,8 +15,9 @@ This package help to work with huge amount of data, which cannot be stored in RA
   - [Read](#read)
   - [Write](#write)
   - [Other](#other)
-- [TODO methods](#todo-methods)
 - [Unavailable methods](#unavailable-methods)
+  - [Can be added](#can-be-added)
+  - [Won't be adeed](#wont-be-adeed)
 
 ## Example
 
@@ -92,13 +93,15 @@ func main() {
 - `Cap() int` – equal to `Len()` method
 - `Reset()`
 
-## TODO methods
+## Unavailable methods
+
+### Can be added
 
 - `ReadBytes(delim byte) (line []byte, err error)`
 - `ReadString(delim byte) (line string, err error)`
-- `ReadRune() (r rune, size int, err error)` – **help wanted**
+- `ReadRune() (r rune, size int, err error)` – **help wanted** (check `Buffer.readRune()` method)
 
-## Unavailable methods
+### Won't be adeed
 
 - `Bytes() []byte`
 
