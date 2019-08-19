@@ -96,7 +96,6 @@ func main() {
 - `ReadBytes(delim byte) (line []byte, err error)`
 - `ReadString(delim byte) (line string, err error)`
 - `ReadRune() (r rune, size int, err error)` – **help wanted**
-- `Truncate(n int)`
 
 ## Unavailable methods
 
@@ -116,5 +115,6 @@ func main() {
 
   **Reason:** we can't define capacity (see the previous reason)
 
+- `Truncate(n int)`
 - `UnreadByte() error`
 - `UnreadRune() error`
