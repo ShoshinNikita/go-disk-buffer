@@ -360,10 +360,12 @@ func (b *Buffer) Reset() {
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func generateRandomString(length int) string {
+	const alphabetSize = len(alphabet)
+
 	filename := make([]byte, 0, length)
 
 	for i := 0; i < length; i++ {
-		n := rand.Intn(len(alphabet))
+		n := rand.Intn(alphabetSize)
 		filename = append(filename, alphabet[n])
 	}
 
