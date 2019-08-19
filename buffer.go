@@ -111,7 +111,7 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 		b.useFile = true
 
 		// Create a file in TempDir
-		b.filename = os.TempDir() + "/" + generateFilename(tempFilenameLength) + ".tmp"
+		b.filename = os.TempDir() + "/" + generateRandomString(tempFilenameLength) + ".tmp"
 		b.file, err = os.Create(b.filename)
 		if err != nil {
 			return n, errors.Wrap(err, "can't create a temp file")
@@ -283,7 +283,7 @@ func (b *Buffer) Reset() {
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func generateFilename(length int) string {
+func generateRandomString(length int) string {
 	filename := make([]byte, 0, length)
 
 	for i := 0; i < length; i++ {
