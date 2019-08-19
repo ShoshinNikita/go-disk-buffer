@@ -275,6 +275,80 @@ func TestBuffer_Next(t *testing.T) {
 	}
 }
 
+func TestBuffer_ReadFrom(t *testing.T) {
+	tests := []struct {
+		before []byte
+		data   []byte
+		after  []byte
+	}{
+		{
+			before: []byte("hello"),
+			data:   []byte(""),
+			after:  []byte("world"),
+		},
+		{
+			before: []byte(""),
+			data:   []byte("test"),
+			after:  []byte(""),
+		},
+		{
+			before: []byte("hello"),
+			data:   []byte(": some test message: "),
+			after:  []byte("world"),
+		},
+		{
+			before: []byte("test"),
+			data:   []byte(generateRandomString(1000)),
+			after:  []byte("!!!"),
+		},
+		{
+			before: []byte(""),
+			data:   []byte(generateRandomString(2047)),
+			after:  []byte(""),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			fullMsg := append(append(tt.before, tt.data...), tt.after...)
+
+			require := require.New(t)
+
+			b := NewBuffer(nil)
+			defer b.Reset()
+
+			// Write before
+			n, err := b.Write([]byte(tt.before))
+			require.Nil(err)
+			require.Equal(len(tt.before), n)
+
+			// Write the data
+			buffer := bytes.NewBuffer(nil)
+			buffer.Write(tt.data)
+
+			n1, err := b.ReadFrom(buffer)
+			require.Nil(err)
+			require.Equal(len(tt.data), int(n1))
+
+			// Write after
+			n, err = b.Write([]byte(tt.after))
+			require.Nil(err)
+			require.Equal(len(tt.after), n)
+
+			// Check
+
+			buffData, err := readByChunks(require, b, 32)
+			require.Nil(err)
+			require.Equal(fullMsg, buffData)
+		})
+	}
+
+}
+
 func TestBuffer_WriteSmth(t *testing.T) {
 	tests := []struct {
 		desc  string

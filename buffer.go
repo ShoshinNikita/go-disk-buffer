@@ -153,6 +153,32 @@ func (b *Buffer) WriteString(s string) (n int, err error) {
 	return b.Write([]byte(s))
 }
 
+// ReadFrom reads data from r until EOF and writes it into the Buffer.
+func (b *Buffer) ReadFrom(r io.Reader) (int64, error) {
+	var n int64
+
+	var data = make([]byte, 512)
+	for {
+		rN, rErr := r.Read(data)
+		if rErr != nil && rErr != io.EOF {
+			return n, errors.Wrap(rErr, "can't read data from passed io.Reader")
+		}
+
+		data = data[:rN]
+		wN, wErr := b.Write(data)
+		if wErr != nil {
+			return n + int64(wN), errors.Wrap(wErr, "can't write data")
+		}
+		n += int64(rN)
+
+		if rErr == io.EOF {
+			return n, nil
+		}
+
+		data = data[:cap(data)]
+	}
+}
+
 // Read reads data from bytes.Buffer or from a file. A temp file is deleted when Read() encounter n == 0
 func (b *Buffer) Read(data []byte) (n int, err error) {
 	if b.readingFinished {
