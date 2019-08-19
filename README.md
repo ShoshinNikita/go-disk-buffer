@@ -12,6 +12,7 @@ This package `buffer` helps to work with huge amount of data, which cannot be st
 ##
 
 - [Example](#example)
+- [Benchmark](#benchmark)
 - [Available methods](#available-methods)
   - [Read](#read)
   - [Write](#write)
@@ -69,6 +70,23 @@ func main() {
     data := b.Next(13)
     fmt.Println(string(data)) // "Hello, World!"
 }
+```
+
+## Benchmark
+
+**CPU:** Intel Core i7-3630QM  
+**RAM:** 8 GB  
+**Disk:** HDD, 5400 rpm
+
+```
+Buffer_size_is_greater_than_data/bytes.Buffer-8     1000       1591091 ns/op      10043209 B/op     36 allocs/op
+Buffer_size_is_greater_than_data/utils.Buffer-8     1000       1346077 ns/op       6901679 B/op     26 allocs/op
+
+Buffer_size_is_equal_to_data/bytes.Buffer-8         1000       1760100 ns/op      10043195 B/op     36 allocs/op
+Buffer_size_is_equal_to_data/utils.Buffer-8         2000       1357077 ns/op       7434159 B/op     27 allocs/op
+
+Buffer_size_is_less_than_data/bytes.Buffer-8          50      36522090 ns/op     177848123 B/op     53 allocs/op
+Buffer_size_is_less_than_data/utils.Buffer-8          10     110406320 ns/op     112327659 B/op     62 allocs/op
 ```
 
 ## Available methods
