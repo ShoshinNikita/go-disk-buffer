@@ -223,6 +223,8 @@ func TestBuffer_ReadByte(t *testing.T) {
 	data := []byte("1234")
 
 	b := NewBufferWithMaxMemorySize(len(data) / 2)
+	defer b.Reset()
+
 	b.Write([]byte(data))
 
 	for i := 0; i < len(data); i++ {
@@ -241,6 +243,8 @@ func TestBuffer_ReadRune(t *testing.T) {
 	data := []byte("Hello | ✓ | 123456 | Привет!")
 
 	b := NewBufferWithMaxMemorySize(len(data) / 2)
+	defer b.Reset()
+
 	b.Write([]byte(data))
 
 	for _, rn := range string(data) {
@@ -476,6 +480,7 @@ func TestBuffer_FuzzTest(t *testing.T) {
 
 			b := NewBufferWithMaxMemorySize(bufferSize)
 			defer b.Reset()
+
 			// Write slice by chunks
 			writeByChunks(require, b, slice, writeChunkSize)
 
@@ -587,6 +592,7 @@ func BenchmarkBuffer(b *testing.B) {
 			b.Run("utils.Buffer", func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
 					buff := NewBufferWithMaxMemorySize(bench.maxBufferSize)
+					defer buff.Reset()
 
 					err := writeByChunksBenchmark(buff, slice, bench.writeChunkSize)
 					if err != nil {
