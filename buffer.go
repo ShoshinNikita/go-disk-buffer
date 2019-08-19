@@ -243,6 +243,18 @@ func (b *Buffer) ReadByte() (byte, error) {
 	return c[0], err
 }
 
+// Next returns a slice containing the next n bytes from the buffer.
+// If an error occurred, it panics
+func (b *Buffer) Next(n int) []byte {
+	slice := make([]byte, n)
+	n, err := b.buff.Read(slice)
+	if err != nil {
+		panic(err)
+	}
+	slice = slice[:n]
+	return slice
+}
+
 // Len returns the number of bytes of the unread portion of the buffer
 func (b *Buffer) Len() int {
 	return b.size - b.offset

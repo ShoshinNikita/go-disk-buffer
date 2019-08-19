@@ -6,6 +6,7 @@
 
 - `Read(p []byte) (n int, err error)`
 - `ReadByte() (byte, error)`
+- `Next(n int) []byte`
 
 ### Write
 

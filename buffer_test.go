@@ -231,6 +231,50 @@ func TestBuffer_ReadByte(t *testing.T) {
 	}
 }
 
+func TestBuffer_Next(t *testing.T) {
+	tests := []struct {
+		originalData []byte
+
+		readChunk    int
+		receivedData []byte
+	}{
+		{
+			originalData: []byte("Hello, world!"),
+			readChunk:    0,
+			receivedData: []byte{},
+		},
+		{
+			originalData: []byte("Hello, world!"),
+			readChunk:    5,
+			receivedData: []byte("Hello"),
+		},
+		{
+			originalData: []byte("Hello, world!"),
+			readChunk:    13,
+			receivedData: []byte("Hello, world!"),
+		},
+		{
+			originalData: []byte("Hello, world!"),
+			readChunk:    20,
+			receivedData: []byte("Hello, world!"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run("", func(t *testing.T) {
+			require := require.New(t)
+
+			b := NewBuffer(tt.originalData)
+			defer b.Reset()
+
+			data := b.Next(tt.readChunk)
+			require.Equal(tt.receivedData, data)
+		})
+	}
+}
+
 func TestBuffer_WriteSmth(t *testing.T) {
 	tests := []struct {
 		desc  string
