@@ -43,7 +43,7 @@ type Buffer struct {
 }
 
 // NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
-func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
+func NewBufferWithMaxMemorySize(maxInMemorySize int) *Buffer {
 	b := &Buffer{
 		maxInMemorySize: maxInMemorySize,
 	}
@@ -58,7 +58,7 @@ func NewBufferWithMemorySize(maxInMemorySize int) *Buffer {
 // NewBuffer creates a new Buffer with DefaultMaxMemorySize and calls Write(buf).
 // If an error occurred, it panics
 func NewBuffer(buf []byte) *Buffer {
-	b := NewBufferWithMemorySize(DefaultMaxMemorySize)
+	b := NewBufferWithMaxMemorySize(DefaultMaxMemorySize)
 	if buf == nil || len(buf) == 0 {
 		// A special case
 		return b

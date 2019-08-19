@@ -60,7 +60,7 @@ func TestBuffer_CheckBufferAndFileSize(t *testing.T) {
 
 			require := require.New(t)
 
-			b := NewBufferWithMemorySize(tt.maxSize)
+			b := NewBufferWithMaxMemorySize(tt.maxSize)
 			defer b.Reset()
 
 			n, err := b.Write(tt.data)
@@ -194,7 +194,7 @@ func TestBuffer_WriteAndRead(t *testing.T) {
 
 			require := require.New(t)
 
-			b := NewBufferWithMemorySize(tt.maxSize)
+			b := NewBufferWithMaxMemorySize(tt.maxSize)
 			defer b.Reset()
 
 			var dataWritten int
@@ -221,7 +221,7 @@ func TestBuffer_ReadByte(t *testing.T) {
 
 	data := []byte("1234")
 
-	b := NewBufferWithMemorySize(len(data) / 2)
+	b := NewBufferWithMaxMemorySize(len(data) / 2)
 	b.Write([]byte(data))
 
 	for i := 0; i < len(data); i++ {
@@ -342,7 +342,7 @@ func TestBuffer_FuzzTest(t *testing.T) {
 				slice[i] = byte(rand.Intn(128))
 			}
 
-			b := NewBufferWithMemorySize(bufferSize)
+			b := NewBufferWithMaxMemorySize(bufferSize)
 			defer b.Reset()
 			// Write slice by chunks
 			writeByChunks(require, b, slice, writeChunkSize)
@@ -454,7 +454,7 @@ func BenchmarkBuffer(b *testing.B) {
 
 			b.Run("utils.Buffer", func(b *testing.B) {
 				for n := 0; n < b.N; n++ {
-					buff := NewBufferWithMemorySize(bench.maxBufferSize)
+					buff := NewBufferWithMaxMemorySize(bench.maxBufferSize)
 
 					err := writeByChunksBenchmark(buff, slice, bench.writeChunkSize)
 					if err != nil {
