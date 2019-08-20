@@ -1,6 +1,6 @@
 # Go Disk Buffer
 
-This package `buffer` helps to work with huge amount of data, which cannot be stored in RAM. Instead of keeping all data in RAM `buffer.Buffer` stores the data on a disk in a temporary file.
+Package `buffer` helps to work with huge amount of data, which cannot be stored in RAM. Instead of keeping all data in RAM `buffer.Buffer` can store the data on a disk in a temporary file.
 
 **Notes:**
 
