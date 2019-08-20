@@ -537,6 +537,23 @@ func readByChunks(require *require.Assertions, b *Buffer, chunk int) ([]byte, er
 	return res, nil
 }
 
+const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func generateRandomString(length int) string {
+	const alphabetSize = len(alphabet)
+
+	filename := make([]byte, 0, length)
+
+	for i := 0; i < length; i++ {
+		n := rand.Intn(alphabetSize)
+		filename = append(filename, alphabet[n])
+	}
+
+	return string(filename)
+}
+
+// Benchmarks
+
 func BenchmarkBuffer(b *testing.B) {
 	benchs := []struct {
 		description    string
