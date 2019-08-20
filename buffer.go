@@ -3,6 +3,7 @@ package buffer
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"time"
@@ -110,12 +111,12 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 
 		b.useFile = true
 
-		// Create a file in TempDir
-		b.filename = os.TempDir() + "/" + generateRandomString(tempFilenameLength) + ".tmp"
-		b.file, err = os.Create(b.filename)
+		// Create a temporary file
+		b.file, err = ioutil.TempFile("", "go-disk-buffer-*.tmp")
 		if err != nil {
 			return n, errors.Wrap(err, "can't create a temp file")
 		}
+		b.filename = b.file.Name()
 
 		// fallthrough
 	}
