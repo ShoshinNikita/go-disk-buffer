@@ -289,6 +289,8 @@ func TestBuffer_Next(t *testing.T) {
 		tt := tt
 
 		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
 			require := require.New(t)
 
 			b := NewBuffer(tt.originalData)
@@ -390,6 +392,8 @@ func TestBuffer_WriteSmth(t *testing.T) {
 		tt := tt
 
 		t.Run(tt.desc, func(t *testing.T) {
+			t.Parallel()
+
 			require := require.New(t)
 
 			b := NewBuffer(nil)
