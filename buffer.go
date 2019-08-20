@@ -17,11 +17,13 @@ func init() {
 }
 
 const (
-	tempFilenameLength   = 5
+	tempFilenameLength = 5
+	// DefaultMaxMemorySize is used when Buffer is created with NewBuffer() or NewBufferString()
 	DefaultMaxMemorySize = 2 << 20 // 2 MB
 )
 
 var (
+	// ErrBufferFinished is used when Buffer.Write() method is called after Buffer.Read()
 	ErrBufferFinished = errors.New("buffer is finished")
 )
 
@@ -44,7 +46,7 @@ type Buffer struct {
 	filename string
 }
 
-// NewBufferWithMemorySize creates a new Buffer with passed maxInMemorySize
+// NewBufferWithMaxMemorySize creates a new Buffer with passed maxInMemorySize
 func NewBufferWithMaxMemorySize(maxInMemorySize int) *Buffer {
 	b := &Buffer{
 		maxInMemorySize: maxInMemorySize,
@@ -136,7 +138,7 @@ func (b *Buffer) WriteByte(c byte) error {
 	return err
 }
 
-// WriteByte writes a rune.
+// WriteRune writes a rune.
 //
 // It uses bytes.Buffer and Buffer.Write underhood.
 func (b *Buffer) WriteRune(r rune) (n int, err error) {
@@ -149,7 +151,7 @@ func (b *Buffer) WriteRune(r rune) (n int, err error) {
 	return b.Write(tmp.Bytes())
 }
 
-// WriteByte writes a string
+// WriteString writes a string
 func (b *Buffer) WriteString(s string) (n int, err error) {
 	return b.Write([]byte(s))
 }
@@ -304,6 +306,7 @@ func (b *Buffer) Next(n int) []byte {
 	return slice
 }
 
+// WriteTo writes data to w until the buffer is drained or an error occurs.
 func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
 	var n int64
 
