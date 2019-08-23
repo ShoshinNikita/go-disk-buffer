@@ -2,12 +2,16 @@
 
 Package `buffer` helps to work with huge amount of data, which cannot be stored in RAM. Instead of keeping all data in RAM `buffer.Buffer` can store the data on a disk in a temporary file.
 
+**Features:**
+
+- `buffer.Buffer` is compatible with `io.Reader` and `io.Writer` interfaces
+- `buffer.Buffer` can replace `bytes.Buffer` (except some methods – check [Unavailable methods](#unavailable-methods))
+
 **Notes:**
 
 - It is **not** recommended to use zero value of `buffer.Buffer`. Use `buffer.NewBuffer()` or `buffer.NewBufferWithMaxMemorySize()` instead
-- `buffer.Buffer` is compatible with `io.Reader` and `io.Writer` interfaces
-- `buffer.Buffer` can replace `bytes.Buffer` (except some methods – check [Unavailable methods](#unavailable-methods))
 - `buffer.Buffer` is **not** thread-safe!
+- `buffer.Buffer` uses a directory returned by `os.TempDir()` to store temp files
 
 ##
 
