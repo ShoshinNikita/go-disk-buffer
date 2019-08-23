@@ -17,7 +17,6 @@ func init() {
 }
 
 const (
-	tempFilenameLength = 5
 	// DefaultMaxMemorySize is used when Buffer is created with NewBuffer() or NewBufferString()
 	DefaultMaxMemorySize = 2 << 20 // 2 MB
 )
