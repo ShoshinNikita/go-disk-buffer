@@ -208,8 +208,7 @@ func TestBuffer_WriteAndRead(t *testing.T) {
 				require.Equal(dataWritten, b.Len(), "Len() method returned wrong value")
 			}
 
-			res, err := readByChunks(require, b, tt.readSliceSize)
-			require.Nil(err, "error during Read()")
+			res := readByChunks(require, b, tt.readSliceSize)
 			require.Equalf(tt.res, res, "wrong content was read")
 
 			require.Equal(0, b.Len(), "Buffer must be empty")
@@ -368,8 +367,7 @@ func TestBuffer_ReadFrom(t *testing.T) {
 
 			// Check
 
-			buffData, err := readByChunks(require, b, 32)
-			require.Nil(err)
+			buffData := readByChunks(require, b, 32)
 			require.Equal(fullMsg, buffData)
 		})
 	}
@@ -488,8 +486,7 @@ func TestBuffer_FuzzTest(t *testing.T) {
 			// Write slice by chunks
 			writeByChunks(require, b, slice, writeChunkSize)
 
-			res, err := readByChunks(require, b, readChunkSize)
-			require.Nil(err, "error during Read()")
+			res := readByChunks(require, b, readChunkSize)
 			require.Equal(slice, res, "wrong content was read")
 		})
 	}
@@ -509,7 +506,7 @@ func writeByChunks(require *require.Assertions, b *Buffer, source []byte, chunk 
 	}
 }
 
-func readByChunks(require *require.Assertions, b *Buffer, chunk int) ([]byte, error) {
+func readByChunks(require *require.Assertions, b *Buffer, chunk int) []byte {
 	var (
 		res      []byte
 		dataRead int
@@ -525,16 +522,16 @@ func readByChunks(require *require.Assertions, b *Buffer, chunk int) ([]byte, er
 		data = data[:cap(data)]
 
 		require.Equal(dataRead, bufSize-b.Len(), "Len() method returned wrong value")
+
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-
-			return nil, err
+			require.Nil(err)
 		}
 	}
 
-	return res, nil
+	return res
 }
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
