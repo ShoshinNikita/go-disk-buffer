@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"time"
 	"unicode/utf8"
 
@@ -35,6 +36,9 @@ type Buffer struct {
 
 	size   int
 	offset int
+
+	// tempFileDir is a directory for temp files. It is empty by default (so, "ioutil.TempFile" uses os.TempDir)
+	tempFileDir string
 
 	// buff is used to store data in memory
 	buff bytes.Buffer
@@ -80,6 +84,33 @@ func NewBufferString(s string) *Buffer {
 	return NewBuffer([]byte(s))
 }
 
+// ChangeTempDir changes directory for temp files
+func (b *Buffer) ChangeTempDir(dir string) error {
+	f, err := os.Open(dir)
+	if err != nil {
+		return errors.Wrapf(err, "can't open directory '%s'", dir)
+	}
+	defer f.Close()
+
+	stats, err := f.Stat()
+	if err != nil {
+		return errors.Wrapf(err, "can't get stats of the directory '%s'", dir)
+	}
+	if !stats.IsDir() {
+		return errors.Errorf("'%s' is not a directory", dir)
+	}
+
+	path, err := filepath.Abs(dir)
+	if err != nil {
+		return errors.New("can't get an absolute path")
+	}
+
+	// Change
+	b.tempFileDir = path
+
+	return nil
+}
+
 // Write writes data into bytes.Buffer while size of the Buffer is less than maxInMemorySize, when size of Buffer is equal to maxInMemorySize, Write creates a temporary file and writes remaining data into this one.
 // Write returns ErrBufferFinished after the call of Buffer.Read(), Buffer.ReadByte() or Buffer.Next()
 //
@@ -113,7 +144,7 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 		b.useFile = true
 
 		// Create a temporary file
-		b.file, err = ioutil.TempFile("", "go-disk-buffer-*.tmp")
+		b.file, err = ioutil.TempFile(b.tempFileDir, "go-disk-buffer-*.tmp")
 		if err != nil {
 			return n, errors.Wrap(err, "can't create a temp file")
 		}

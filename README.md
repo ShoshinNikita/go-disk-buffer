@@ -11,7 +11,7 @@ Package `buffer` helps to work with huge amount of data, which cannot be stored 
 
 - It is **not** recommended to use zero value of `buffer.Buffer`. Use `buffer.NewBuffer()` or `buffer.NewBufferWithMaxMemorySize()` instead
 - `buffer.Buffer` is **not** thread-safe!
-- `buffer.Buffer` uses a directory returned by `os.TempDir()` to store temp files
+- `buffer.Buffer` uses a directory returned by `os.TempDir()` to store temp files. You can change the directory with `Buffer.ChangeTempDir` method
 
 ##
 

@@ -451,6 +451,69 @@ func TestBuffer_WriteTo(t *testing.T) {
 	}
 }
 
+func TestBuffer_ChangeTempDir(t *testing.T) {
+	t.Run("Existing dir", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir          = "./test"
+			maxMemory    = 100
+			originalData = []byte(generateRandomString(256))
+			chunk        = 64
+		)
+
+		err := os.MkdirAll(dir, 0666)
+		require.Nil(err)
+
+		buf := NewBufferWithMaxMemorySize(maxMemory)
+		err = buf.ChangeTempDir(dir)
+		require.Nil(err)
+
+		writeByChunks(require, buf, originalData, chunk)
+		data := readByChunks(require, buf, chunk)
+		require.Equal(originalData, data)
+
+		err = os.RemoveAll(dir)
+		require.Nil(err)
+	})
+
+	t.Run("Non-existing dir", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir = "./123"
+		)
+
+		buf := NewBuffer(nil)
+		err := buf.ChangeTempDir(dir)
+		require.NotNil(err)
+	})
+
+	t.Run("File", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir  = "./test"
+			file = "./test/123.txt"
+		)
+
+		err := os.MkdirAll(dir, 0666)
+		require.Nil(err)
+
+		f, err := os.Create(file)
+		require.Nil(err)
+		f.Close()
+
+		buf := NewBuffer(nil)
+		err = buf.ChangeTempDir(file)
+		require.NotNil(err)
+	})
+
+}
+
 func TestBuffer_FuzzTest(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
