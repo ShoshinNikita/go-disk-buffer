@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"unicode/utf8"
 
+	"github.com/minio/sio"
 	"github.com/pkg/errors"
 )
 
@@ -166,7 +167,15 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 		if err != nil {
 			return n, errors.Wrap(err, "can't create a temp file")
 		}
-		b.writeFile = file
+
+		var writeFile io.WriteCloser = file
+		if b.encrypt {
+			writeFile, err = sio.EncryptWriter(file, sio.Config{Key: b.encryptionKey[:]})
+			if err != nil {
+				return n, errors.Wrap(err, "can't create an encryption stream")
+			}
+		}
+		b.writeFile = writeFile
 		b.filename = file.Name()
 
 		// fallthrough
@@ -305,10 +314,21 @@ func (b *Buffer) readFromBuffer(data []byte) (n int, err error) {
 
 func (b *Buffer) readFromFile(data []byte) (n int, err error) {
 	if b.readFile == nil {
-		b.readFile, err = os.Open(b.filename)
+		file, err := os.Open(b.filename)
 		if err != nil {
 			return 0, errors.Wrapf(err, "can't open a temp file '%s'", b.filename)
 		}
+
+		var readFile io.ReadCloser = file
+		if b.encrypt {
+			reader, err := sio.DecryptReader(file, sio.Config{Key: b.encryptionKey[:]})
+			if err != nil {
+				return 0, errors.Wrap(err, "can't create a decryption stream")
+			}
+			readFile = newSioDecryptReaderWrapper(reader, file)
+		}
+
+		b.readFile = readFile
 	}
 
 	return b.readFile.Read(data)
@@ -412,4 +432,27 @@ func (b *Buffer) Reset() {
 	b.readFile = nil
 	b.useFile = false
 	b.filename = ""
+}
+
+// sioDecryptReaderWrapper is a wrapper for sio.DecryptReader() function
+// that satisfy io.ReadCloser.
+// It reads from passed io.Reader and closes the original file
+type sioDecryptReaderWrapper struct {
+	r            io.Reader
+	originalFile *os.File
+}
+
+func newSioDecryptReaderWrapper(r io.Reader, file *os.File) *sioDecryptReaderWrapper {
+	return &sioDecryptReaderWrapper{
+		r:            r,
+		originalFile: file,
+	}
+}
+
+func (rw *sioDecryptReaderWrapper) Read(p []byte) (int, error) {
+	return rw.r.Read(p)
+}
+
+func (rw *sioDecryptReaderWrapper) Close() error {
+	return rw.originalFile.Close()
 }
