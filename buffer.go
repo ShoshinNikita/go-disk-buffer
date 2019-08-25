@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io"
 	"io/ioutil"
 	"os"
@@ -33,6 +34,9 @@ type Buffer struct {
 
 	// tempFileDir is a directory for temp files. It is empty by default (so, "ioutil.TempFile" uses os.TempDir)
 	tempFileDir string
+
+	encrypt       bool
+	encryptionKey [32]byte
 
 	// buff is used to store data in memory
 	buff bytes.Buffer
@@ -104,6 +108,23 @@ func (b *Buffer) ChangeTempDir(dir string) error {
 
 	// Change
 	b.tempFileDir = path
+
+	return nil
+}
+
+// EnableEncryption enables encryption and generates an encryption key
+func (b *Buffer) EnableEncryption() error {
+	b.encrypt = true
+
+	key := make([]byte, len(b.encryptionKey))
+	_, err := rand.Read(key)
+	if err != nil {
+		return errors.Wrap(err, "can't read random data")
+	}
+
+	for i := range key {
+		b.encryptionKey[i] = key[i]
+	}
 
 	return nil
 }
