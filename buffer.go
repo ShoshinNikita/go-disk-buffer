@@ -4,18 +4,12 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"path/filepath"
-	"time"
 	"unicode/utf8"
 
 	"github.com/pkg/errors"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 const (
 	// DefaultMaxMemorySize is used when Buffer is created with NewBuffer() or NewBufferString()
