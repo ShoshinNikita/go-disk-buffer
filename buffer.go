@@ -37,8 +37,11 @@ type Buffer struct {
 	// buff is used to store data in memory
 	buff bytes.Buffer
 
-	// file is used to store data on a disk
-	file     *os.File
+	// writeFile is used to write the data on a disk
+	writeFile io.WriteCloser
+	// readFile is used to read the data from a disk
+	readFile io.ReadCloser
+
 	useFile  bool
 	filename string
 }
@@ -138,17 +141,18 @@ func (b *Buffer) Write(data []byte) (n int, err error) {
 		b.useFile = true
 
 		// Create a temporary file
-		b.file, err = ioutil.TempFile(b.tempFileDir, "go-disk-buffer-*.tmp")
+		file, err := ioutil.TempFile(b.tempFileDir, "go-disk-buffer-*.tmp")
 		if err != nil {
 			return n, errors.Wrap(err, "can't create a temp file")
 		}
-		b.filename = b.file.Name()
+		b.writeFile = file
+		b.filename = file.Name()
 
 		// fallthrough
 	}
 
 	// Write data into the file
-	n1, err := b.file.Write(data)
+	n1, err := b.writeFile.Write(data)
 	n += n1
 	return
 }
@@ -214,9 +218,9 @@ func (b *Buffer) Read(data []byte) (n int, err error) {
 
 	if !b.writingFinished {
 		// Finish writing and close Write&Read file if needed
-		if b.file != nil {
-			b.file.Close()
-			b.file = nil
+		if b.writeFile != nil {
+			b.writeFile.Close()
+			b.writeFile = nil
 		}
 		b.writingFinished = true
 	}
@@ -230,12 +234,12 @@ func (b *Buffer) Read(data []byte) (n int, err error) {
 			b.readingFinished = true
 		}
 
-		if b.readingFinished && b.file != nil {
+		if b.readingFinished && b.readFile != nil {
 			// Can close the file
-			b.file.Close()
+			b.readFile.Close()
 			os.Remove(b.filename)
 
-			b.file = nil
+			b.readFile = nil
 			b.filename = ""
 		}
 	}()
@@ -279,14 +283,14 @@ func (b *Buffer) readFromBuffer(data []byte) (n int, err error) {
 }
 
 func (b *Buffer) readFromFile(data []byte) (n int, err error) {
-	if b.file == nil {
-		b.file, err = os.Open(b.filename)
+	if b.readFile == nil {
+		b.readFile, err = os.Open(b.filename)
 		if err != nil {
 			return 0, errors.Wrapf(err, "can't open a temp file '%s'", b.filename)
 		}
 	}
 
-	return b.file.Read(data)
+	return b.readFile.Read(data)
 }
 
 // ReadByte reads a single byte.
@@ -370,17 +374,21 @@ func (b *Buffer) Cap() int {
 func (b *Buffer) Reset() {
 	b.buff.Reset()
 
-	if b.file != nil {
-		b.file.Close()
+	if b.writeFile != nil {
+		b.writeFile.Close()
+	}
+	if b.readFile != nil {
+		b.readFile.Close()
+	}
 
-		if b.filename != "" {
-			os.Remove(b.filename)
-		}
+	if b.filename != "" {
+		os.Remove(b.filename)
 	}
 
 	b.writingFinished = false
 	b.readingFinished = false
-	b.file = nil
+	b.writeFile = nil
+	b.readFile = nil
 	b.useFile = false
 	b.filename = ""
 }
