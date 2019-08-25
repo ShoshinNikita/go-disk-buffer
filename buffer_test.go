@@ -452,6 +452,11 @@ func TestBuffer_WriteTo(t *testing.T) {
 }
 
 func TestBuffer_ChangeTempDir(t *testing.T) {
+	if os.Getenv("CI_CD") == "true" {
+		// There are problems with permission (with GitHub Action, for example)
+		t.Skip("skip the test because there are problems with permission")
+	}
+
 	t.Run("Existing dir", func(t *testing.T) {
 		t.Parallel()
 		require := require.New(t)
