@@ -6,6 +6,7 @@ Package `buffer` helps to work with huge amount of data, which cannot be stored 
 
 - `buffer.Buffer` is compatible with `io.Reader` and `io.Writer` interfaces
 - `buffer.Buffer` can replace `bytes.Buffer` (except some methods – check [Unavailable methods](#unavailable-methods))
+- You can encrypt data on a disk. Just use `Buffer.EnableEncryption` method
 
 **Notes:**
 
