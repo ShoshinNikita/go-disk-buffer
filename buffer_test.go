@@ -522,42 +522,85 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 func TestBuffer_FuzzTest(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
-	for i := 0; i < 100; i++ {
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
+	t.Run("Without encryption", func(t *testing.T) {
+		for i := 0; i < 50; i++ {
+			t.Run("", func(t *testing.T) {
+				t.Parallel()
 
-			require := require.New(t)
+				require := require.New(t)
 
-			var (
-				sliceSize      = rand.Intn(1<<10) + 1
-				bufferSize     = rand.Intn(sliceSize * 2) // can be zero
-				writeChunkSize = rand.Intn(sliceSize) + 1
-				readChunkSize  = rand.Intn(sliceSize) + 1
-			)
+				var (
+					sliceSize      = rand.Intn(1<<10) + 1
+					bufferSize     = rand.Intn(sliceSize * 2) // can be zero
+					writeChunkSize = rand.Intn(sliceSize) + 1
+					readChunkSize  = rand.Intn(sliceSize) + 1
+				)
 
-			defer func() {
-				// Log only when test is failed
-				if t.Failed() {
-					t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
-						sliceSize, bufferSize, writeChunkSize, readChunkSize)
+				defer func() {
+					// Log only when test is failed
+					if t.Failed() {
+						t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
+							sliceSize, bufferSize, writeChunkSize, readChunkSize)
+					}
+				}()
+
+				slice := make([]byte, sliceSize)
+				for i := range slice {
+					slice[i] = byte(rand.Intn(128))
 				}
-			}()
 
-			slice := make([]byte, sliceSize)
-			for i := range slice {
-				slice[i] = byte(rand.Intn(128))
-			}
+				b := NewBufferWithMaxMemorySize(bufferSize)
+				defer b.Reset()
 
-			b := NewBufferWithMaxMemorySize(bufferSize)
-			defer b.Reset()
+				// Write slice by chunks
+				writeByChunks(require, b, slice, writeChunkSize)
 
-			// Write slice by chunks
-			writeByChunks(require, b, slice, writeChunkSize)
+				res := readByChunks(require, b, readChunkSize)
+				require.Equal(slice, res, "wrong content was read")
+			})
+		}
+	})
 
-			res := readByChunks(require, b, readChunkSize)
-			require.Equal(slice, res, "wrong content was read")
-		})
-	}
+	t.Run("With encryption", func(t *testing.T) {
+		for i := 0; i < 50; i++ {
+			t.Run("", func(t *testing.T) {
+				t.Parallel()
+
+				require := require.New(t)
+
+				var (
+					sliceSize      = rand.Intn(1<<10) + 1
+					bufferSize     = rand.Intn(sliceSize * 2) // can be zero
+					writeChunkSize = rand.Intn(sliceSize) + 1
+					readChunkSize  = rand.Intn(sliceSize) + 1
+				)
+
+				defer func() {
+					// Log only when test is failed
+					if t.Failed() {
+						t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
+							sliceSize, bufferSize, writeChunkSize, readChunkSize)
+					}
+				}()
+
+				slice := make([]byte, sliceSize)
+				for i := range slice {
+					slice[i] = byte(rand.Intn(128))
+				}
+
+				b := NewBufferWithMaxMemorySize(bufferSize)
+				err := b.EnableEncryption()
+				require.Nil(err)
+				defer b.Reset()
+
+				// Write slice by chunks
+				writeByChunks(require, b, slice, writeChunkSize)
+
+				res := readByChunks(require, b, readChunkSize)
+				require.Equal(slice, res, "wrong content was read")
+			})
+		}
+	})
 }
 
 func writeByChunks(require *require.Assertions, b *Buffer, source []byte, chunk int) {
