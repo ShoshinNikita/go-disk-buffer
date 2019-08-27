@@ -208,8 +208,7 @@ func TestBuffer_WriteAndRead(t *testing.T) {
 				require.Equal(dataWritten, b.Len(), "Len() method returned wrong value")
 			}
 
-			res, err := readByChunks(require, b, tt.readSliceSize)
-			require.Nil(err, "error during Read()")
+			res := readByChunks(require, b, tt.readSliceSize)
 			require.Equalf(tt.res, res, "wrong content was read")
 
 			require.Equal(0, b.Len(), "Buffer must be empty")
@@ -368,8 +367,7 @@ func TestBuffer_ReadFrom(t *testing.T) {
 
 			// Check
 
-			buffData, err := readByChunks(require, b, 32)
-			require.Nil(err)
+			buffData := readByChunks(require, b, 32)
 			require.Equal(fullMsg, buffData)
 		})
 	}
@@ -453,46 +451,156 @@ func TestBuffer_WriteTo(t *testing.T) {
 	}
 }
 
+func TestBuffer_ChangeTempDir(t *testing.T) {
+	if os.Getenv("CI_CD") == "true" {
+		// There are problems with permission (with GitHub Action, for example)
+		t.Skip("skip the test because there are problems with permission")
+	}
+
+	t.Run("Existing dir", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir          = "./test"
+			maxMemory    = 100
+			originalData = []byte(generateRandomString(256))
+			chunk        = 64
+		)
+
+		err := os.MkdirAll(dir, 0666)
+		require.Nil(err)
+
+		buf := NewBufferWithMaxMemorySize(maxMemory)
+		err = buf.ChangeTempDir(dir)
+		require.Nil(err)
+
+		writeByChunks(require, buf, originalData, chunk)
+		data := readByChunks(require, buf, chunk)
+		require.Equal(originalData, data)
+
+		err = os.RemoveAll(dir)
+		require.Nil(err)
+	})
+
+	t.Run("Non-existing dir", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir = "./123"
+		)
+
+		buf := NewBuffer(nil)
+		err := buf.ChangeTempDir(dir)
+		require.NotNil(err)
+	})
+
+	t.Run("File", func(t *testing.T) {
+		t.Parallel()
+		require := require.New(t)
+
+		var (
+			dir  = "./test"
+			file = "./test/123.txt"
+		)
+
+		err := os.MkdirAll(dir, 0666)
+		require.Nil(err)
+
+		f, err := os.Create(file)
+		require.Nil(err)
+		f.Close()
+
+		buf := NewBuffer(nil)
+		err = buf.ChangeTempDir(file)
+		require.NotNil(err)
+	})
+
+}
+
 func TestBuffer_FuzzTest(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 
-	for i := 0; i < 100; i++ {
-		t.Run("", func(t *testing.T) {
-			t.Parallel()
+	t.Run("Without encryption", func(t *testing.T) {
+		for i := 0; i < 50; i++ {
+			t.Run("", func(t *testing.T) {
+				t.Parallel()
 
-			require := require.New(t)
+				require := require.New(t)
 
-			var (
-				sliceSize      = rand.Intn(1<<10) + 1
-				bufferSize     = rand.Intn(sliceSize * 2) // can be zero
-				writeChunkSize = rand.Intn(sliceSize) + 1
-				readChunkSize  = rand.Intn(sliceSize) + 1
-			)
+				var (
+					sliceSize      = rand.Intn(1<<10) + 1
+					bufferSize     = rand.Intn(sliceSize * 2) // can be zero
+					writeChunkSize = rand.Intn(sliceSize) + 1
+					readChunkSize  = rand.Intn(sliceSize) + 1
+				)
 
-			defer func() {
-				// Log only when test is failed
-				if t.Failed() {
-					t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
-						sliceSize, bufferSize, writeChunkSize, readChunkSize)
+				defer func() {
+					// Log only when test is failed
+					if t.Failed() {
+						t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
+							sliceSize, bufferSize, writeChunkSize, readChunkSize)
+					}
+				}()
+
+				slice := make([]byte, sliceSize)
+				for i := range slice {
+					slice[i] = byte(rand.Intn(128))
 				}
-			}()
 
-			slice := make([]byte, sliceSize)
-			for i := range slice {
-				slice[i] = byte(rand.Intn(128))
-			}
+				b := NewBufferWithMaxMemorySize(bufferSize)
+				defer b.Reset()
 
-			b := NewBufferWithMaxMemorySize(bufferSize)
-			defer b.Reset()
+				// Write slice by chunks
+				writeByChunks(require, b, slice, writeChunkSize)
 
-			// Write slice by chunks
-			writeByChunks(require, b, slice, writeChunkSize)
+				res := readByChunks(require, b, readChunkSize)
+				require.Equal(slice, res, "wrong content was read")
+			})
+		}
+	})
 
-			res, err := readByChunks(require, b, readChunkSize)
-			require.Nil(err, "error during Read()")
-			require.Equal(slice, res, "wrong content was read")
-		})
-	}
+	t.Run("With encryption", func(t *testing.T) {
+		for i := 0; i < 50; i++ {
+			t.Run("", func(t *testing.T) {
+				t.Parallel()
+
+				require := require.New(t)
+
+				var (
+					sliceSize      = rand.Intn(1<<10) + 1
+					bufferSize     = rand.Intn(sliceSize * 2) // can be zero
+					writeChunkSize = rand.Intn(sliceSize) + 1
+					readChunkSize  = rand.Intn(sliceSize) + 1
+				)
+
+				defer func() {
+					// Log only when test is failed
+					if t.Failed() {
+						t.Logf("sliceSize: %d; bufferSize: %d; writeChunkSize: %d; readChunkSize: %d\n",
+							sliceSize, bufferSize, writeChunkSize, readChunkSize)
+					}
+				}()
+
+				slice := make([]byte, sliceSize)
+				for i := range slice {
+					slice[i] = byte(rand.Intn(128))
+				}
+
+				b := NewBufferWithMaxMemorySize(bufferSize)
+				err := b.EnableEncryption()
+				require.Nil(err)
+				defer b.Reset()
+
+				// Write slice by chunks
+				writeByChunks(require, b, slice, writeChunkSize)
+
+				res := readByChunks(require, b, readChunkSize)
+				require.Equal(slice, res, "wrong content was read")
+			})
+		}
+	})
 }
 
 func writeByChunks(require *require.Assertions, b *Buffer, source []byte, chunk int) {
@@ -509,7 +617,7 @@ func writeByChunks(require *require.Assertions, b *Buffer, source []byte, chunk 
 	}
 }
 
-func readByChunks(require *require.Assertions, b *Buffer, chunk int) ([]byte, error) {
+func readByChunks(require *require.Assertions, b *Buffer, chunk int) []byte {
 	var (
 		res      []byte
 		dataRead int
@@ -525,16 +633,16 @@ func readByChunks(require *require.Assertions, b *Buffer, chunk int) ([]byte, er
 		data = data[:cap(data)]
 
 		require.Equal(dataRead, bufSize-b.Len(), "Len() method returned wrong value")
+
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-
-			return nil, err
+			require.Nil(err)
 		}
 	}
 
-	return res, nil
+	return res
 }
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
