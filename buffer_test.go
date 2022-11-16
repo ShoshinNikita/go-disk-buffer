@@ -371,7 +371,6 @@ func TestBuffer_ReadFrom(t *testing.T) {
 			require.Equal(fullMsg, buffData)
 		})
 	}
-
 }
 
 func TestBuffer_WriteSmth(t *testing.T) {
@@ -487,9 +486,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 		t.Parallel()
 		require := require.New(t)
 
-		var (
-			dir = "./123"
-		)
+		dir := "./123"
 
 		buf := NewBuffer(nil)
 		err := buf.ChangeTempDir(dir)
@@ -516,7 +513,6 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 		err = buf.ChangeTempDir(file)
 		require.NotNil(err)
 	})
-
 }
 
 func TestBuffer_FuzzTest(t *testing.T) {
@@ -736,7 +732,6 @@ func BenchmarkBuffer(b *testing.B) {
 			})
 		})
 	}
-
 }
 
 func writeByChunksBenchmark(w io.Writer, source []byte, chunk int) error {
@@ -776,4 +771,93 @@ func readByChunksBenchmark(r io.Reader, chunk int) ([]byte, error) {
 	}
 
 	return res, nil
+}
+
+func TestBuffer_ReaderAt(t *testing.T) {
+	tests := []struct {
+		bufMemSize   int
+		originalData []byte
+
+		offset       int
+		readN        int
+		receivedData []byte
+	}{
+		{
+			bufMemSize:   3000,
+			originalData: []byte("Hello, world!"),
+			offset:       0,
+			readN:        5,
+			receivedData: []byte("Hello"),
+		},
+		{
+			bufMemSize:   3000,
+			originalData: []byte("Hello, world!"),
+			offset:       2,
+			readN:        2,
+			receivedData: []byte("ll"),
+		},
+		{
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       2,
+			readN:        2,
+			receivedData: []byte("ll"),
+		},
+		{
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       3,
+			readN:        2,
+			receivedData: []byte("lo"),
+		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       1,
+			readN:        3,
+			receivedData: []byte("ell"),
+		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       1,
+			readN:        300,
+			receivedData: []byte("ello, world!"),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			require := require.New(t)
+
+			b := newBufWithSize(tt.originalData, tt.bufMemSize)
+
+			defer b.Reset()
+
+			data := make([]byte, len(tt.receivedData))
+			_, err := b.ReadAt(data, int64(tt.offset))
+			if err != nil {
+				t.Fatalf("err: %s", err.Error())
+			}
+			require.Equal(tt.receivedData, data)
+		})
+	}
+}
+
+func newBufWithSize(buf []byte, size int) *Buffer {
+	b := NewBufferWithMaxMemorySize(size)
+	if buf == nil || len(buf) == 0 {
+		// A special case
+		return b
+	}
+
+	_, err := b.Write(buf)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
