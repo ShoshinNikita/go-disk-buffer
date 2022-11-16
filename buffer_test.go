@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -820,9 +821,9 @@ func TestBuffer_ReaderAt(t *testing.T) {
 		{ // read half from buf half from file
 			bufMemSize:   2,
 			originalData: []byte("Hello, world!"),
-			offset:       1,
+			offset:       0,
 			readN:        300,
-			receivedData: []byte("ello, world!"),
+			receivedData: []byte("Hello, world!"),
 		},
 	}
 
@@ -840,7 +841,7 @@ func TestBuffer_ReaderAt(t *testing.T) {
 
 			data := make([]byte, len(tt.receivedData))
 			_, err := b.ReadAt(data, int64(tt.offset))
-			if err != nil {
+			if err != nil && !errors.Is(err, io.EOF) {
 				t.Fatalf("err: %s", err.Error())
 			}
 			require.Equal(tt.receivedData, data)

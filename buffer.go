@@ -343,7 +343,7 @@ func (b *Buffer) ReadAt(data []byte, off int64) (n int, err error) {
 	// we have to create a mulireaderAt
 	// first read the half from buffer
 	bufN, err := b.ReadAt(data[:b.buff.Len()], off)
-	if err != nil && errors.Is(err, io.EOF) {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return bufN, err
 	}
 
