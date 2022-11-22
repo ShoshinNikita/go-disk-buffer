@@ -468,7 +468,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 			chunk        = 64
 		)
 
-		err := os.MkdirAll(dir, 0666)
+		err := os.MkdirAll(dir, 0755)
 		require.Nil(err)
 
 		buf := NewBufferWithMaxMemorySize(maxMemory)
@@ -503,7 +503,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 			file = "./test/123.txt"
 		)
 
-		err := os.MkdirAll(dir, 0666)
+		err := os.MkdirAll(dir, 0755)
 		require.Nil(err)
 
 		f, err := os.Create(file)
@@ -825,6 +825,27 @@ func TestBuffer_ReaderAt(t *testing.T) {
 			readN:        300,
 			receivedData: []byte("Hello, world!"),
 		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       4,
+			readN:        300,
+			receivedData: []byte("o, world!"),
+		},
+		{
+			bufMemSize:   0,
+			originalData: []byte("test"),
+			offset:       1,
+			readN:        300,
+			receivedData: []byte("est"),
+		},
+		{
+			bufMemSize:   0,
+			originalData: []byte(""),
+			offset:       76,
+			readN:        0,
+			receivedData: []byte(""),
+		},
 	}
 
 	for _, tt := range tests {
@@ -849,6 +870,43 @@ func TestBuffer_ReaderAt(t *testing.T) {
 	}
 }
 
+func TestReadAt(t *testing.T) {
+	require := require.New(t)
+
+	licData, err := os.ReadFile("LICENSE")
+	require.NoError(err)
+
+	b := newBufWithSize(licData, 10)
+
+	defer b.Reset()
+
+	receivedData := make([]byte, 15)
+	_, err = b.ReadAt(receivedData, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("The MIT License", receivedData)
+
+	_, err = b.ReadAt(receivedData, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("The MIT License", receivedData)
+
+	_, err = b.ReadAt(receivedData, 2)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("e MIT License (", receivedData)
+
+	n, err := b.ReadAt(receivedData, 20)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues(")\n\nCopyright (c", receivedData)
+	require.Equal(len(receivedData), n)
+}
+
 func newBufWithSize(buf []byte, size int) *Buffer {
 	b := NewBufferWithMaxMemorySize(size)
 	if buf == nil || len(buf) == 0 {
@@ -861,4 +919,25 @@ func newBufWithSize(buf []byte, size int) *Buffer {
 		panic(err)
 	}
 	return b
+}
+
+func FuzzReaderAt(f *testing.F) {
+	// target, can be only one per test
+	// values of a and b will be auto-generated
+	f.Fuzz(func(t *testing.T, data []byte, randOffset int64) {
+		if randOffset <= 0 || len(data) == 0 {
+			return
+		}
+		newData := make([]byte, len(data))
+		buf := newBufWithSize(data, 10)
+		defer buf.Reset()
+		_, err := buf.ReadAt(newData, int64(randOffset))
+		if err != nil && !errors.Is(err, io.EOF) {
+			t.Fatal(err)
+		}
+
+		if len(data) > int(randOffset) {
+			require.EqualValues(t, string(data[randOffset:]), string(newData[:len(data[randOffset:])]))
+		}
+	})
 }

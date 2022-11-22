@@ -308,7 +308,7 @@ func (b *Buffer) Read(data []byte) (n int, err error) {
 
 func (b *Buffer) ReadAt(data []byte, off int64) (n int, err error) {
 	// offset is only on disk:
-	if off >= int64(b.buff.Len()) {
+	if off >= int64(b.buff.Len()) && b.useFile {
 		if b.readFile == nil {
 			file, err := os.Open(b.filename)
 			if err != nil {
