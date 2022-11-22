@@ -99,6 +99,7 @@ Buffer_size_is_less_than_data/utils.Buffer-8          10     110406320 ns/op    
 ### Read
 
 - `Read(p []byte) (n int, err error)`
+- `ReadAt(b []byte, off int64) (n int, err error)`
 - `ReadByte() (byte, error)`
 - `Next(n int) []byte`
 - `WriteTo(w io.Writer) (n int64, err error)`

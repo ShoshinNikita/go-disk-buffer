@@ -9,6 +9,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -371,7 +372,6 @@ func TestBuffer_ReadFrom(t *testing.T) {
 			require.Equal(fullMsg, buffData)
 		})
 	}
-
 }
 
 func TestBuffer_WriteSmth(t *testing.T) {
@@ -468,7 +468,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 			chunk        = 64
 		)
 
-		err := os.MkdirAll(dir, 0666)
+		err := os.MkdirAll(dir, 0755)
 		require.Nil(err)
 
 		buf := NewBufferWithMaxMemorySize(maxMemory)
@@ -487,9 +487,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 		t.Parallel()
 		require := require.New(t)
 
-		var (
-			dir = "./123"
-		)
+		dir := "./123"
 
 		buf := NewBuffer(nil)
 		err := buf.ChangeTempDir(dir)
@@ -505,7 +503,7 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 			file = "./test/123.txt"
 		)
 
-		err := os.MkdirAll(dir, 0666)
+		err := os.MkdirAll(dir, 0755)
 		require.Nil(err)
 
 		f, err := os.Create(file)
@@ -516,7 +514,6 @@ func TestBuffer_ChangeTempDir(t *testing.T) {
 		err = buf.ChangeTempDir(file)
 		require.NotNil(err)
 	})
-
 }
 
 func TestBuffer_FuzzTest(t *testing.T) {
@@ -736,7 +733,6 @@ func BenchmarkBuffer(b *testing.B) {
 			})
 		})
 	}
-
 }
 
 func writeByChunksBenchmark(w io.Writer, source []byte, chunk int) error {
@@ -776,4 +772,172 @@ func readByChunksBenchmark(r io.Reader, chunk int) ([]byte, error) {
 	}
 
 	return res, nil
+}
+
+func TestBuffer_ReaderAt(t *testing.T) {
+	tests := []struct {
+		bufMemSize   int
+		originalData []byte
+
+		offset       int
+		readN        int
+		receivedData []byte
+	}{
+		{
+			bufMemSize:   3000,
+			originalData: []byte("Hello, world!"),
+			offset:       0,
+			readN:        5,
+			receivedData: []byte("Hello"),
+		},
+		{
+			bufMemSize:   3000,
+			originalData: []byte("Hello, world!"),
+			offset:       2,
+			readN:        2,
+			receivedData: []byte("ll"),
+		},
+		{
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       2,
+			readN:        2,
+			receivedData: []byte("ll"),
+		},
+		{
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       3,
+			readN:        2,
+			receivedData: []byte("lo"),
+		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       1,
+			readN:        3,
+			receivedData: []byte("ell"),
+		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       0,
+			readN:        300,
+			receivedData: []byte("Hello, world!"),
+		},
+		{ // read half from buf half from file
+			bufMemSize:   2,
+			originalData: []byte("Hello, world!"),
+			offset:       4,
+			readN:        300,
+			receivedData: []byte("o, world!"),
+		},
+		{
+			bufMemSize:   0,
+			originalData: []byte("test"),
+			offset:       1,
+			readN:        300,
+			receivedData: []byte("est"),
+		},
+		{
+			bufMemSize:   0,
+			originalData: []byte(""),
+			offset:       76,
+			readN:        0,
+			receivedData: []byte(""),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run("", func(t *testing.T) {
+			t.Parallel()
+
+			require := require.New(t)
+
+			b := newBufWithSize(tt.originalData, tt.bufMemSize)
+
+			defer b.Reset()
+
+			data := make([]byte, len(tt.receivedData))
+			_, err := b.ReadAt(data, int64(tt.offset))
+			if err != nil && !errors.Is(err, io.EOF) {
+				t.Fatalf("err: %s", err.Error())
+			}
+			require.Equal(tt.receivedData, data)
+		})
+	}
+}
+
+func TestReadAt(t *testing.T) {
+	require := require.New(t)
+
+	licData, err := os.ReadFile("LICENSE")
+	require.NoError(err)
+
+	b := newBufWithSize(licData, 10)
+
+	defer b.Reset()
+
+	receivedData := make([]byte, 15)
+	_, err = b.ReadAt(receivedData, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("The MIT License", receivedData)
+
+	_, err = b.ReadAt(receivedData, 0)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("The MIT License", receivedData)
+
+	_, err = b.ReadAt(receivedData, 2)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues("e MIT License (", receivedData)
+
+	n, err := b.ReadAt(receivedData, 20)
+	if err != nil && !errors.Is(err, io.EOF) {
+		t.Fatalf("err: %s", err.Error())
+	}
+	require.EqualValues(")\n\nCopyright (c", receivedData)
+	require.Equal(len(receivedData), n)
+}
+
+func newBufWithSize(buf []byte, size int) *Buffer {
+	b := NewBufferWithMaxMemorySize(size)
+	if buf == nil || len(buf) == 0 {
+		// A special case
+		return b
+	}
+
+	_, err := b.Write(buf)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func FuzzReaderAt(f *testing.F) {
+	// target, can be only one per test
+	// values of a and b will be auto-generated
+	f.Fuzz(func(t *testing.T, data []byte, randOffset int64) {
+		if randOffset <= 0 || len(data) == 0 {
+			return
+		}
+		newData := make([]byte, len(data))
+		buf := newBufWithSize(data, 10)
+		defer buf.Reset()
+		_, err := buf.ReadAt(newData, int64(randOffset))
+		if err != nil && !errors.Is(err, io.EOF) {
+			t.Fatal(err)
+		}
+
+		if len(data) > int(randOffset) {
+			require.EqualValues(t, string(data[randOffset:]), string(newData[:len(data[randOffset:])]))
+		}
+	})
 }
